@@ -54,6 +54,59 @@
     flex-grow: 1;
 }
 
+/* Строки «галочка + подпись» — штатный вид таверны: всё слева, рядом. */
+.tkw-settings .checkbox_label {
+    margin-bottom: 8px;
+}
+
+/* Категории — по образцу DS Comments: заголовок-кнопка, тело сворачивается. */
+.tkw-cat {
+    border-top: 1px solid var(--SmartThemeBorderColor);
+}
+
+.tkw-settings .checkbox_label + .tkw-cat { margin-top: 10px; }
+
+.tkw-cat-head {
+    appearance: none;
+    -webkit-appearance: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    min-height: 40px;
+    padding: 10px 6px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    color: var(--SmartThemeQuoteColor, currentColor);
+    font-size: 0.82em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.tkw-cat-head[aria-expanded="true"] { background: rgba(255, 255, 255, 0.03); }
+
+.tkw-cat-head:focus-visible {
+    outline: 2px solid var(--SmartThemeQuoteColor, currentColor);
+    outline-offset: -2px;
+}
+
+.tkw-cat-chevron { transition: transform 0.15s ease; }
+.tkw-cat-head[aria-expanded="true"] .tkw-cat-chevron { transform: rotate(180deg); }
+
+.tkw-cat-body { padding: 0 4px 12px; }
+.tkw-cat-body[hidden] { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    .tkw-cat-chevron { transition: none; }
+}
+
+
 /* =====================================================================
    Окно «Контекст» — цвета берём из темы таверны
    ===================================================================== */

@@ -1,126 +1,155 @@
 <div class="tkw-settings">
     <div class="inline-drawer">
         <div class="inline-drawer-toggle inline-drawer-header">
-            <b>Tokenweaver</b>
+            <b><i class="fa-solid fa-calculator"></i> 「 TALLY 」</b>
             <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
         </div>
         <div class="inline-drawer-content">
-            <div class="flex-container">
+            <label class="checkbox_label" for="tkw_enabled">
                 <input id="tkw_enabled" type="checkbox" />
-                <label for="tkw_enabled">Включить счётчик</label>
+                <span>Включить счётчик</span>
+            </label>
+
+            <div class="tkw-cat">
+                <button type="button" class="tkw-cat-head" aria-expanded="false">
+                    <span><i class="fa-solid fa-chart-simple fa-fw"></i> Счёт</span>
+                    <i class="fa-solid fa-chevron-down tkw-cat-chevron"></i>
+                </button>
+                <div class="tkw-cat-body" hidden>
+                    <label class="checkbox_label" for="tkw_show_max">
+                        <input id="tkw_show_max" type="checkbox" />
+                        <span>Показывать максимум (/max)</span>
+                    </label>
+
+                    <label class="checkbox_label" for="tkw_use_custom_max">
+                        <input id="tkw_use_custom_max" type="checkbox" />
+                        <span>Свой максимум контекста</span>
+                    </label>
+
+                    <div class="flex-container" id="tkw_custom_max_container">
+                        <label for="tkw_custom_max">Максимум</label>
+                        <input id="tkw_custom_max" type="number" class="text_pole" min="1000" max="1000000" step="1000" placeholder="например, 32000" style="width: 120px;" />
+                    </div>
+
+                    <label class="checkbox_label" for="tkw_show_side">
+                        <input id="tkw_show_side" type="checkbox" />
+                        <span>Показывать боковые запросы на табло</span>
+                    </label>
+
+                    <div class="flex-container">
+                        <label for="tkw_history_size">Сколько запросов хранить в истории</label>
+                        <input id="tkw_history_size" type="number" class="text_pole" min="1" max="20" step="1" style="width: 70px;" />
+                    </div>
+                </div>
             </div>
 
-            <hr>
+            <div class="tkw-cat">
+                <button type="button" class="tkw-cat-head" aria-expanded="false">
+                    <span><i class="fa-solid fa-display fa-fw"></i> Табло</span>
+                    <i class="fa-solid fa-chevron-down tkw-cat-chevron"></i>
+                </button>
+                <div class="tkw-cat-body" hidden>
+                    <div class="flex-container">
+                        <label for="tkw_position">Положение</label>
+                        <select id="tkw_position" class="text_pole">
+                            <option value="top-right">Справа сверху</option>
+                            <option value="top-left">Слева сверху</option>
+                            <option value="bottom-right">Справа снизу</option>
+                            <option value="bottom-left">Слева снизу</option>
+                        </select>
+                    </div>
+                    <div class="flex-container" style="font-size: 0.85em; opacity: 0.65;">
+                        <span><i class="fa-solid fa-hand"></i> Табло можно перетаскивать мышкой. Выбор угла сбрасывает позицию</span>
+                    </div>
 
-            <div class="flex-container">
-                <label for="tkw_position">Положение</label>
-                <select id="tkw_position" class="text_pole">
-                    <option value="top-right">Справа сверху</option>
-                    <option value="top-left">Слева сверху</option>
-                    <option value="bottom-right">Справа снизу</option>
-                    <option value="bottom-left">Слева снизу</option>
-                </select>
-            </div>
-            <div class="flex-container" style="font-size: 0.85em; opacity: 0.65;">
-                <span><i class="fa-solid fa-hand"></i> Табло можно перетаскивать мышкой. Выбор угла сбрасывает позицию</span>
-            </div>
+                    <div class="flex-container">
+                        <label for="tkw_opacity">Прозрачность табло</label>
+                        <input id="tkw_opacity" type="range" min="0.1" max="1" step="0.1" />
+                        <span id="tkw_opacity_value">100%</span>
+                    </div>
 
-            <div class="flex-container">
-                <label for="tkw_opacity">Прозрачность табло</label>
-                <input id="tkw_opacity" type="range" min="0.1" max="1" step="0.1" />
-                <span id="tkw_opacity_value">100%</span>
-            </div>
+                    <div class="flex-container">
+                        <label for="tkw_scale">Размер</label>
+                        <input id="tkw_scale" type="range" min="0.5" max="1.5" step="0.1" />
+                        <span id="tkw_scale_value">1.0x</span>
+                    </div>
 
-            <div class="flex-container">
-                <label for="tkw_scale">Размер</label>
-                <input id="tkw_scale" type="range" min="0.5" max="1.5" step="0.1" />
-                <span id="tkw_scale_value">1.0x</span>
-            </div>
+                    <div class="flex-container">
+                        <label for="tkw_bg_color">Цвет фона</label>
+                        <input id="tkw_bg_color" type="color" class="text_pole" style="width: 50px; height: 30px; padding: 0;" />
+                    </div>
 
-            <div class="flex-container">
-                <label for="tkw_bg_color">Цвет фона</label>
-                <input id="tkw_bg_color" type="color" class="text_pole" style="width: 50px; height: 30px; padding: 0;" />
-            </div>
+                    <div class="flex-container">
+                        <label for="tkw_bg_opacity">Прозрачность фона</label>
+                        <input id="tkw_bg_opacity" type="range" min="0" max="1" step="0.05" />
+                        <span id="tkw_bg_opacity_value">85%</span>
+                    </div>
 
-            <div class="flex-container">
-                <label for="tkw_bg_opacity">Прозрачность фона</label>
-                <input id="tkw_bg_opacity" type="range" min="0" max="1" step="0.05" />
-                <span id="tkw_bg_opacity_value">85%</span>
-            </div>
-
-            <div class="flex-container">
-                <label for="tkw_border_radius">Скругление углов</label>
-                <input id="tkw_border_radius" type="range" min="0" max="30" step="1" />
-                <span id="tkw_border_radius_value">4px</span>
-            </div>
-
-            <hr>
-
-            <div class="flex-container">
-                <label for="tkw_text_opacity">Прозрачность текста</label>
-                <input id="tkw_text_opacity" type="range" min="0" max="1" step="0.05" />
-                <span id="tkw_text_opacity_value">100%</span>
+                    <div class="flex-container">
+                        <label for="tkw_border_radius">Скругление углов</label>
+                        <input id="tkw_border_radius" type="range" min="0" max="30" step="1" />
+                        <span id="tkw_border_radius_value">4px</span>
+                    </div>
+                </div>
             </div>
 
-            <div class="flex-container">
-                <input id="tkw_use_fixed_text_color" type="checkbox" />
-                <label for="tkw_use_fixed_text_color">Фиксированный цвет текста (без цвета по заполненности)</label>
+            <div class="tkw-cat">
+                <button type="button" class="tkw-cat-head" aria-expanded="false">
+                    <span><i class="fa-solid fa-font fa-fw"></i> Текст</span>
+                    <i class="fa-solid fa-chevron-down tkw-cat-chevron"></i>
+                </button>
+                <div class="tkw-cat-body" hidden>
+                    <div class="flex-container">
+                        <label for="tkw_text_opacity">Прозрачность текста</label>
+                        <input id="tkw_text_opacity" type="range" min="0" max="1" step="0.05" />
+                        <span id="tkw_text_opacity_value">100%</span>
+                    </div>
+
+                    <label class="checkbox_label" for="tkw_use_fixed_text_color">
+                        <input id="tkw_use_fixed_text_color" type="checkbox" />
+                        <span>Фиксированный цвет текста (без цвета по заполненности)</span>
+                    </label>
+
+                    <div class="flex-container" id="tkw_fixed_text_color_container">
+                        <label for="tkw_text_color">Цвет текста</label>
+                        <input id="tkw_text_color" type="color" class="text_pole" style="width: 50px; height: 30px; padding: 0;" />
+                    </div>
+                </div>
             </div>
 
-            <div class="flex-container" id="tkw_fixed_text_color_container">
-                <label for="tkw_text_color">Цвет текста</label>
-                <input id="tkw_text_color" type="color" class="text_pole" style="width: 50px; height: 30px; padding: 0;" />
+            <div class="tkw-cat">
+                <button type="button" class="tkw-cat-head" aria-expanded="false">
+                    <span><i class="fa-solid fa-ghost fa-fw"></i> Скрытые сообщения</span>
+                    <i class="fa-solid fa-chevron-down tkw-cat-chevron"></i>
+                </button>
+                <div class="tkw-cat-body" hidden>
+                    <label class="checkbox_label" for="tkw_show_hidden">
+                        <input id="tkw_show_hidden" type="checkbox" />
+                        <span>Показывать счётчик скрытых сообщений</span>
+                    </label>
+
+                    <div class="flex-container">
+                        <label for="tkw_hidden_position">Где показывать</label>
+                        <select id="tkw_hidden_position" class="text_pole">
+                            <option value="below">Под числом</option>
+                            <option value="inline">В строку</option>
+                            <option value="separate">В скобках</option>
+                        </select>
+                    </div>
+                </div>
             </div>
 
-            <hr>
-
-            <div class="flex-container">
-                <input id="tkw_show_max" type="checkbox" />
-                <label for="tkw_show_max">Показывать максимум (/max)</label>
-            </div>
-
-            <div class="flex-container">
-                <input id="tkw_use_custom_max" type="checkbox" />
-                <label for="tkw_use_custom_max">Свой максимум контекста</label>
-            </div>
-
-            <div class="flex-container" id="tkw_custom_max_container">
-                <label for="tkw_custom_max">Максимум</label>
-                <input id="tkw_custom_max" type="number" class="text_pole" min="1000" max="1000000" step="1000" placeholder="например, 32000" style="width: 120px;" />
-            </div>
-
-            <div class="flex-container">
-                <input id="tkw_show_side" type="checkbox" />
-                <label for="tkw_show_side">Показывать боковые запросы на табло</label>
-            </div>
-
-            <div class="flex-container">
-                <label for="tkw_history_size">Сколько запросов хранить в истории</label>
-                <input id="tkw_history_size" type="number" class="text_pole" min="1" max="20" step="1" style="width: 70px;" />
-            </div>
-
-            <hr>
-
-            <div class="tkw-excluded-block">
-                <b>Не отслеживать</b>
-                <div class="tkw-excluded-hint">Запросы этих расширений не попадают ни в историю, ни в „+“ на табло.</div>
-                <div id="tkw_excluded_list"></div>
-            </div>
-
-            <hr>
-
-            <div class="flex-container">
-                <input id="tkw_show_hidden" type="checkbox" />
-                <label for="tkw_show_hidden"><i class="fa-solid fa-ghost"></i> Показывать счётчик скрытых сообщений</label>
-            </div>
-
-            <div class="flex-container">
-                <label for="tkw_hidden_position">Где показывать</label>
-                <select id="tkw_hidden_position" class="text_pole">
-                    <option value="below">Под числом</option>
-                    <option value="inline">В строку</option>
-                    <option value="separate">В скобках</option>
-                </select>
+            <div class="tkw-cat">
+                <button type="button" class="tkw-cat-head" aria-expanded="false">
+                    <span><i class="fa-solid fa-eye-slash fa-fw"></i> Не отслеживать</span>
+                    <i class="fa-solid fa-chevron-down tkw-cat-chevron"></i>
+                </button>
+                <div class="tkw-cat-body" hidden>
+                    <div class="tkw-excluded-block">
+                        <div class="tkw-excluded-hint">Запросы этих расширений не попадают ни в историю, ни в „+“ на табло.</div>
+                        <div id="tkw_excluded_list"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

@@ -1,4 +1,5 @@
-// Tokenweaver — счётчик контекста с разделением основного ответа и боковых запросов.
+// Tally (бывший Tokenweaver) — счётчик контекста с разделением основного ответа и боковых запросов.
+// Ключ настроек, префикс tkw- и папка расширения не меняются — настройки на месте.
 // Основа: ST Context Counter (niemandswasser, KiskaSora), Apache 2.0.
 
 import { extension_settings, getContext } from "../../../extensions.js";
@@ -6,7 +7,7 @@ import { saveSettingsDebounced, eventSource, event_types } from "../../../../scr
 
 const extensionName = "tokenweaver";
 const LEGACY_SETTINGS_KEY = "st-context-counter";
-const LOG = "[Tokenweaver]";
+const LOG = "[Tally]";
 
 // Сбрасывать табло в 0 при смене чата (число от прошлого чата в новом только врёт).
 const RESET_ON_CHAT_CHANGED = true;
@@ -929,7 +930,7 @@ function excludeSource(path, label) {
 
     renderPanel();
     renderExcludedList();
-    toastr.info(`${label || path} больше не отслеживается. Вернуть можно в настройках Tokenweaver`);
+    toastr.info(`${label || path} больше не отслеживается. Вернуть можно в настройках Tally`);
 }
 
 function restoreSource(path) {
@@ -1594,6 +1595,14 @@ jQuery(async () => {
     try {
         const settingsHtml = await $.get(new URL("settings.html", import.meta.url).href);
         $("#extensions_settings2").append(settingsHtml);
+
+        // Категории сворачиваются, как в Коме. При открытии все свёрнуты.
+        $(".tkw-settings").on("click", ".tkw-cat-head", function () {
+            const expanded = this.getAttribute("aria-expanded") === "true";
+            this.setAttribute("aria-expanded", String(!expanded));
+            const body = this.nextElementSibling;
+            if (body) body.hidden = expanded;
+        });
 
         await loadSettings();
         await loadStModules();
