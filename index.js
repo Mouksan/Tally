@@ -112,6 +112,8 @@ const defaultSettings = {
     showHiddenCounter: true,
     hiddenCounterPosition: "below",
     freePosition: null,
+    notifShade: false, // колокольчик со шторкой уведомлений на табло
+    notifDnd: false,   // «не беспокоить»: без цифры и всплывашек (кроме ошибок)
 };
 
 const POSITION_CLASSES = "tkw-pos-top-right tkw-pos-top-left tkw-pos-bottom-right tkw-pos-bottom-left";
@@ -178,6 +180,8 @@ async function loadSettings() {
     $("#tkw_show_side").prop("checked", settings.showSideOnIndicator);
     $("#tkw_history_size").val(settings.historySize);
     $("#tkw_show_hidden").prop("checked", settings.showHiddenCounter);
+    $("#tkw_notif_shade").prop("checked", !!settings.notifShade);
+    $("#tkw_notif_dnd").prop("checked", !!settings.notifDnd);
     $("#tkw_hidden_position").val(settings.hiddenCounterPosition);
 
     $("#tkw_opacity_value").text(Math.round(settings.opacity * 100) + "%");
@@ -214,6 +218,17 @@ function updateSetting(key, value) {
         renderPanel();
     } else if (["customMax", "showMax", "showSideOnIndicator", "showHiddenCounter", "textColor", "textOpacity"].includes(key)) {
         updateContextDisplay();
+    } else if (key === "notifShade") {
+        setNotifCapture(!!value);
+        if (!value) closeShade();
+        updateContextDisplay();
+    } else if (key === "notifDnd") {
+        if (value) {
+            notifUnread = 0;
+            notifUnreadError = false;
+        }
+        refreshBell();
+        renderShade();
     } else if (key === "hiddenCounterPosition") {
         applyStyles();
         updateContextDisplay();
@@ -319,6 +334,7 @@ function makeInteractive() {
         const newLeft = startElemLeft + (clientX - startClientX) / scale;
         contextIndicator.css({ top: newTop + "px", left: newLeft + "px" });
         positionPanel();
+        positionShade();
     }
 
     function release() {
@@ -339,12 +355,21 @@ function makeInteractive() {
     contextIndicator.on("mousedown.tkw-drag", function (e) {
         if (e.button !== 0) return;
         e.preventDefault();
+        // Колокольчик — своя кнопка: ни окна «Контекст», ни перетаскивания.
+        if (e.target.closest?.(".tkw-bell")) {
+            toggleShade();
+            return;
+        }
         press(e.clientX, e.clientY);
     });
 
     contextIndicator[0].addEventListener("touchstart", function (e) {
         if (e.touches.length !== 1) return;
         e.preventDefault();
+        if (e.target.closest?.(".tkw-bell")) {
+            toggleShade();
+            return;
+        }
         const touch = e.touches[0];
         press(touch.clientX, touch.clientY);
     }, { passive: false });
@@ -387,6 +412,7 @@ function removeIndicator() {
         contextIndicator = null;
     }
     closePanel();
+    closeShade();
 }
 
 function applyStyles() {
@@ -459,6 +485,8 @@ function updateContextDisplay() {
         }
     }
 
+    displayHtml += bellHtml();
+
     contextIndicator.html(displayHtml);
 
     // Цвет — только по основному запросу.
@@ -490,6 +518,7 @@ function togglePanel() {
 
 function openPanel() {
     if (!contextIndicator) return;
+    closeShade();
     if (!panel) {
         panel = $(`
             <div id="tkw-panel">
@@ -1521,6 +1550,14 @@ function bindSettingsHandlers() {
         restoreSource(String($(this).data("path")));
     });
 
+    $("#tkw_notif_shade").on("input", function () {
+        updateSetting("notifShade", $(this).prop("checked"));
+    });
+
+    $("#tkw_notif_dnd").on("input", function () {
+        updateSetting("notifDnd", $(this).prop("checked"));
+    });
+
     $("#tkw_show_hidden").on("input", function () {
         updateSetting("showHiddenCounter", $(this).prop("checked"));
     });
@@ -1565,13 +1602,226 @@ function bindEvents() {
         startChatObserver();
     });
 
-    $(window).on("resize.tkw", positionPanel);
+    $(window).on("resize.tkw", () => { positionPanel(); positionShade(); });
     $(document).on("keydown.tkw", (e) => {
         if (e.key !== "Escape") return;
-        if (isViewerOpen()) closeViewer();
+        if (shadeOpen) closeShade();
+        else if (isViewerOpen()) closeViewer();
         else if (panelOpen) closePanel();
     });
 }
+
+// =====================================================================
+// Шторка уведомлений: история всплывашек за сессию (до перезагрузки)
+// =====================================================================
+
+const NOTIF_LIMIT = 50;
+const NOTIF_TYPES = ["info", "success", "warning", "error"];
+const NOTIF_ICONS = {
+    info: "fa-circle-info",
+    success: "fa-circle-check",
+    warning: "fa-triangle-exclamation",
+    error: "fa-circle-xmark",
+};
+
+let notifs = [];              // новые первыми: { type, title, text, time, count }
+let notifUnread = 0;
+let notifUnreadError = false;
+let toastrOriginals = null;   // пока не null — toastr обёрнут
+let shade = null;
+let shadeOpen = false;
+
+/** Текст всплывашки без разметки. DOMParser не запускает скрипты и не грузит картинки. */
+function toastPlainText(value, escaped) {
+    if (value === null || value === undefined) return "";
+    if (typeof value === "object") return $(value).text().trim();
+    const text = String(value);
+    if (escaped) return text.trim();
+    return (new DOMParser().parseFromString(text, "text/html").body.textContent || "").trim();
+}
+
+function recordToast(type, message, title, options) {
+    const escaped = options?.escapeHtml ?? window.toastr?.options?.escapeHtml ?? false;
+    const text = toastPlainText(message, escaped);
+    const head = toastPlainText(title, escaped);
+    if (!text && !head) return;
+
+    const last = notifs[0];
+    if (last && last.type === type && last.title === head && last.text === text) {
+        last.count += 1;
+        last.time = new Date();
+    } else {
+        notifs.unshift({ type, title: head, text, time: new Date(), count: 1 });
+        if (notifs.length > NOTIF_LIMIT) notifs.length = NOTIF_LIMIT;
+    }
+
+    if (!shadeOpen && !extension_settings[extensionName].notifDnd) {
+        notifUnread += 1;
+        if (type === "error") notifUnreadError = true;
+    }
+    refreshBell();
+    if (shadeOpen) renderShade();
+}
+
+/** Оборачиваем toastr, только пока шторка включена. Выключили — возвращаем как было. */
+function setNotifCapture(on) {
+    const toastr = window.toastr;
+    if (!toastr) return;
+    if (on && !toastrOriginals) {
+        toastrOriginals = {};
+        for (const type of NOTIF_TYPES) {
+            const original = toastr[type];
+            if (typeof original !== "function") continue;
+            toastrOriginals[type] = original;
+            toastr[type] = function (message, title, options) {
+                try {
+                    recordToast(type, message, title, options);
+                } catch (error) {
+                    console.warn(LOG, "Не смог записать уведомление", error);
+                }
+                // «Не беспокоить»: всплывашка тихо уходит в шторку, ошибки всё равно видно.
+                // Пустой jQuery вместо элемента — чтобы toastr.clear(toast) у вызывающего не снёс чужие.
+                if (extension_settings[extensionName].notifDnd && type !== "error") return $();
+                return original.apply(this, arguments);
+            };
+        }
+    } else if (!on && toastrOriginals) {
+        for (const [type, original] of Object.entries(toastrOriginals)) toastr[type] = original;
+        toastrOriginals = null;
+    }
+}
+
+function bellHtml() {
+    const settings = extension_settings[extensionName];
+    if (!settings.notifShade) return "";
+    const dnd = !!settings.notifDnd;
+    const badge = !dnd && notifUnread > 0
+        ? `<span class="tkw-bell-badge${notifUnreadError ? " tkw-bell-badge-error" : ""}">${notifUnread > 99 ? "99+" : notifUnread}</span>`
+        : "";
+    const title = dnd ? "Уведомления — не беспокоить" : "Уведомления";
+    return `<span class="tkw-bell${shadeOpen ? " tkw-bell-open" : ""}" title="${title}"><i class="fa-solid ${dnd ? "fa-bell-slash" : "fa-bell"}"></i>${badge}</span>`;
+}
+
+/** Обновляет только колокольчик, без пересчёта всего табло. */
+function refreshBell() {
+    if (!contextIndicator) return;
+    const bell = contextIndicator.find(".tkw-bell");
+    if (bell.length) bell.replaceWith(bellHtml());
+    else updateContextDisplay();
+}
+
+function toggleShade() {
+    if (shadeOpen) closeShade();
+    else openShade();
+}
+
+function openShade() {
+    if (!contextIndicator) return;
+    closePanel();
+    if (!shade) {
+        shade = $(`
+            <div id="tkw-shade" role="dialog" aria-label="Уведомления">
+                <div class="tkw-panel-header">
+                    <span class="tkw-panel-title">Уведомления</span>
+                    <div class="tkw-shade-actions">
+                        <button type="button" class="tkw-shade-dnd menu_button" title="Не беспокоить"><i class="fa-solid fa-moon"></i></button>
+                        <button type="button" class="tkw-shade-clear menu_button" title="Очистить">Очистить</button>
+                        <div class="tkw-panel-close fa-solid fa-xmark" title="Закрыть"></div>
+                    </div>
+                </div>
+                <div class="tkw-shade-list"></div>
+            </div>
+        `);
+        shade.on("click", ".tkw-panel-close", closeShade);
+        shade.on("click", ".tkw-shade-clear", () => {
+            notifs = [];
+            renderShade();
+        });
+        shade.on("click", ".tkw-shade-dnd", () => {
+            const value = !extension_settings[extensionName].notifDnd;
+            $("#tkw_notif_dnd").prop("checked", value);
+            updateSetting("notifDnd", value);
+        });
+        $("body").append(shade);
+    }
+    shadeOpen = true;
+    notifUnread = 0;
+    notifUnreadError = false;
+    renderShade();
+    shade.addClass("tkw-open");
+    positionShade();
+    refreshBell();
+}
+
+function closeShade() {
+    if (!shadeOpen) return;
+    shadeOpen = false;
+    if (shade) shade.removeClass("tkw-open");
+    refreshBell();
+}
+
+function renderShade() {
+    if (!shade) return;
+    const dnd = !!extension_settings[extensionName].notifDnd;
+    shade.find(".tkw-shade-dnd")
+        .toggleClass("tkw-active", dnd)
+        .attr("aria-pressed", String(dnd))
+        .attr("title", dnd ? "Не беспокоить — включено" : "Не беспокоить");
+    const list = shade.find(".tkw-shade-list");
+    if (!notifs.length) {
+        list.html('<div class="tkw-shade-empty">Пока тихо</div>');
+        return;
+    }
+    list.html(notifs.map((n) => `
+        <div class="tkw-notif tkw-notif-${n.type}">
+            <i class="fa-solid ${NOTIF_ICONS[n.type]} tkw-notif-icon"></i>
+            <div class="tkw-notif-body">
+                <div class="tkw-notif-head">
+                    ${n.title ? `<b>${escapeHtml(n.title)}</b>` : ""}
+                    <span class="tkw-notif-time">${formatTime(n.time)}${n.count > 1 ? ` ×${n.count}` : ""}</span>
+                </div>
+                ${n.text ? `<div class="tkw-notif-text">${escapeHtml(n.text)}</div>` : ""}
+            </div>
+        </div>
+    `).join(""));
+}
+
+// Как окно «Контекст»: под табло, если хватает места, иначе над ним.
+function positionShade() {
+    if (!shadeOpen || !shade || !contextIndicator) return;
+    const rect = contextIndicator[0].getBoundingClientRect();
+    const viewportW = window.innerWidth;
+    const viewportH = window.innerHeight;
+    const margin = 10;
+    const gap = 8;
+    const width = Math.min(380, viewportW - margin * 2);
+
+    let left = (rect.left + rect.width / 2 > viewportW / 2) ? rect.right - width : rect.left;
+    left = Math.max(margin, Math.min(left, viewportW - width - margin));
+
+    const spaceBelow = viewportH - rect.bottom - gap - margin;
+    const spaceAbove = rect.top - gap - margin;
+    const css = { width: width + "px", left: left + "px", right: "auto" };
+    if (spaceBelow >= 220 || spaceBelow >= spaceAbove) {
+        css.top = (rect.bottom + gap) + "px";
+        css.bottom = "auto";
+        css["max-height"] = Math.max(120, Math.min(spaceBelow, 480)) + "px";
+    } else {
+        css.top = "auto";
+        css.bottom = (viewportH - rect.top + gap) + "px";
+        css["max-height"] = Math.max(120, Math.min(spaceAbove, 480)) + "px";
+    }
+    shade.css(css);
+}
+
+// Клик мимо шторки и колокольчика — закрыть.
+document.addEventListener("pointerdown", (e) => {
+    if (!shadeOpen) return;
+    const target = e.target;
+    if (!(target instanceof Element)) return;
+    if (target.closest("#tkw-shade") || target.closest(".tkw-bell")) return;
+    closeShade();
+}, true);
 
 async function loadStModules() {
     try {
@@ -1609,6 +1859,7 @@ jQuery(async () => {
         installFetchInterceptor();
         bindSettingsHandlers();
         bindEvents();
+        setNotifCapture(!!extension_settings[extensionName].notifShade);
 
         if (extension_settings[extensionName].enabled) {
             createIndicator();

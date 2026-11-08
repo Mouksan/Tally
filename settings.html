@@ -141,6 +141,24 @@
 
             <div class="tkw-cat">
                 <button type="button" class="tkw-cat-head" aria-expanded="false">
+                    <span><i class="fa-solid fa-bell fa-fw"></i> Уведомления</span>
+                    <i class="fa-solid fa-chevron-down tkw-cat-chevron"></i>
+                </button>
+                <div class="tkw-cat-body" hidden>
+                    <label class="checkbox_label" for="tkw_notif_shade">
+                        <input id="tkw_notif_shade" type="checkbox" />
+                        <span>Кнопка истории уведомлений на табло</span>
+                    </label>
+                    <label class="checkbox_label" for="tkw_notif_dnd">
+                        <input id="tkw_notif_dnd" type="checkbox" />
+                        <span>Не беспокоить</span>
+                    </label>
+                    <div class="tkw-excluded-hint">История живёт до перезагрузки страницы, последние 50. «Не беспокоить» прячет цифру на колокольчике и всплывашки — они тихо падают в шторку; ошибки всё равно видно.</div>
+                </div>
+            </div>
+
+            <div class="tkw-cat">
+                <button type="button" class="tkw-cat-head" aria-expanded="false">
                     <span><i class="fa-solid fa-eye-slash fa-fw"></i> Не отслеживать</span>
                     <i class="fa-solid fa-chevron-down tkw-cat-chevron"></i>
                 </button>
